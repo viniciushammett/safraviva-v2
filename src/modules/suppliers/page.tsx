@@ -1,0 +1,3 @@
+import { UsersRound } from 'lucide-react'
+import { ModulePage } from '@/components/shared/module-page'
+export function SuppliersPage() { return <ModulePage icon={UsersRound} content={{ title: 'Fornecedores', description: 'Um espaço dedicado à sua rede de parceiros de fornecimento.', section: 'Rede de fornecedores', emptyTitle: 'Parcerias que aproximam sua empresa do campo', emptyDescription: 'Aqui será o espaço para organizar suas conexões com produtores rurais. A gestão de fornecedores ainda não está disponível.', topics: ['Parceiros de fornecimento', 'Conexões com produtores', 'Relacionamento comercial'] }} /> }

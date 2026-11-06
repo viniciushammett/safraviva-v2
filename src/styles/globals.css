@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply m-0 bg-background font-sans text-foreground antialiased; }
+  button, a, [role='menuitem'] { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid #16845B; outline-offset: 4px; }
+  ::selection { background: #cce5d7; color: #164B35; }
+}
+.skip-link { position: fixed; top: -100px; left: 1rem; z-index: 100; padding: 12px 20px; border-radius: 6px; background: white; color: #164B35; }
+.skip-link:focus { top: 1rem; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; } }

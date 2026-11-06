@@ -1,0 +1,3 @@
+import { ChartNoAxesCombined } from 'lucide-react'
+import { ModulePage } from '@/components/shared/module-page'
+export function IntelligencePage() { return <ModulePage icon={ChartNoAxesCombined} content={{ title: 'Inteligência de Mercado', description: 'Informações para apoiar suas decisões de comercialização.', section: 'Panorama de mercado', emptyTitle: 'Mais contexto para suas decisões', emptyDescription: 'Este espaço será dedicado às informações do mercado agrícola. Ainda não há dados de mercado disponíveis.', topics: ['Contexto de mercado', 'Informações agrícolas', 'Apoio à comercialização'] }} /> }
