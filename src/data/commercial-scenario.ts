@@ -29,6 +29,9 @@ export function createInitialScenario(): DomainData {
       { id: 'tomate', name: 'Tomate', category: 'Hortaliças', unit: 'kg' },
       { id: 'batata', name: 'Batata', category: 'Tubérculos', unit: 'kg' },
       { id: 'milho', name: 'Milho', category: 'Grãos', unit: 'kg' },
+      { id: 'tomate-italiano', name: 'Tomate Italiano', category: 'Hortaliças', unit: 'kg' },
+      { id: 'alface-crespa', name: 'Alface Crespa', category: 'Hortaliças', unit: 'kg' },
+      { id: 'cenoura', name: 'Cenoura', category: 'Hortaliças', unit: 'kg' },
     ],
     productions: [
       { id: 'prod-tomate-sc', producerOrganizationId: 'santa-clara', productId: 'tomate', estimatedQuantityKg: 2000, harvestedQuantityKg: 1800, expectedHarvestDate: '2026-11-01', status: 'harvested', createdAt, updatedAt },
@@ -45,6 +48,27 @@ export function createInitialScenario(): DomainData {
     ],
     orders: [], logistics: [], domainEvents: [], commandReceipts: [],
     marketAnalyses: ['tomate', 'batata', 'milho'].map((productId, index) => ({ id: `analysis-${productId}`, productId, region: 'Região de Campinas/SP', periodDays: 30, estimatedDemandKg: 6000 + index * 1000, estimatedSupplyKg: 5500 + index * 1200, referencePricePerKg: [4.5, 3.2, 1.2][index], trend: index === 0 ? 'growing' : index === 1 ? 'stable' : 'declining', calculatedAt: updatedAt, methodology: 'Cenário sintético demonstrativo, com valores fixos para testes. Não representa medições, cotações ou previsões reais de mercado.' })),
+  }
+  // Cumulative windows from the same reference date; constant synthetic daily rates.
+  // Region includes Campinas, Valinhos and Indaiatuba; no municipal disaggregation.
+  const fixtures = [
+    { productId: 'tomate-italiano', demand: 240, supply: 200, price: 4.5, trend: 'growing' as const },
+    { productId: 'alface-crespa', demand: 100, supply: 100, price: 3, trend: 'stable' as const },
+    { productId: 'cenoura', demand: 150, supply: 200, price: 2.8, trend: 'declining' as const },
+    { productId: 'batata', demand: 7000 / 30, supply: 6700 / 30, price: 3.2, trend: 'stable' as const },
+  ]
+  for (const fixture of fixtures) {
+    for (const periodDays of [7, 15, 30]) {
+      if (data.marketAnalyses.some((row) => row.productId === fixture.productId && row.periodDays === periodDays)) continue
+      data.marketAnalyses.push({
+        id: `analysis-${fixture.productId}-${periodDays}`, productId: fixture.productId,
+        region: 'Região de Campinas/SP', periodDays,
+        estimatedDemandKg: Math.round(fixture.demand * periodDays * 1000) / 1000,
+        estimatedSupplyKg: Math.round(fixture.supply * periodDays * 1000) / 1000,
+        referencePricePerKg: fixture.price, trend: fixture.trend, calculatedAt: updatedAt,
+        methodology: 'Cenário sintético demonstrativo. Taxas diárias fixas acumuladas em 7, 15 ou 30 dias a partir da mesma referência; Campinas, Valinhos e Indaiatuba. Não representa dados observados ou previsões reais.',
+      })
+    }
   }
   function order(id: string, offerId: string, buyerOrganizationId: string, quantityKg: number, status: OrderStatus) {
     const offer = data.offers.find((row) => row.id === offerId)!

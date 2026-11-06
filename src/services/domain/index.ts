@@ -10,3 +10,5 @@ export const commercialService = new CommercialService(domainDatabase)
 export const logisticsService = new LogisticsService(domainDatabase)
 export const domainQueryService = new DomainQueryService(domainDatabase)
 export const restoreInitialScenario = (confirmation: { confirmed: boolean }) => domainDatabase.restoreInitialScenario(confirmation)
+
+export { MarketIntelligenceService } from '@/services/domain/market-intelligence-service'
