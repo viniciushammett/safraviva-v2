@@ -1,8 +1,27 @@
-import { availableQuantity, commercialTotals } from '@/domain/calculations'
+import { allocatedProductionQuantity, availableQuantity, commercialTotals, commercialVolume, committedQuantity } from '@/domain/calculations'
 import type { DomainUnitOfWork } from '@/repositories/contracts/domain-repositories'
 
 export class DomainQueryService {
   constructor(private readonly database: DomainUnitOfWork) {}
+  async producerWorkspace(organizationId: string) {
+    const data = await this.database.snapshot()
+    const productions = data.productions.filter((row) => row.producerOrganizationId === organizationId)
+    return {
+      products: data.products,
+      productions: productions.map((production) => ({
+        ...production,
+        productName: data.products.find((p) => p.id === production.productId)?.name ?? production.productId,
+        allocatedQuantityKg: allocatedProductionQuantity(data, production.id),
+        commercialVolumeKg: commercialVolume(production),
+      })),
+      offers: data.offers.filter((row) => row.producerOrganizationId === organizationId).map((offer) => ({
+        ...offer,
+        productName: data.products.find((p) => p.id === productions.find((row) => row.id === offer.productionId)?.productId)?.name ?? 'Produto indisponível',
+        committedQuantityKg: committedQuantity(data, offer.id),
+        availableQuantityKg: availableQuantity(data, offer),
+      })),
+    }
+  }
   async snapshot() { return this.database.snapshot() }
   async availableOffers() {
     const data = await this.database.snapshot()

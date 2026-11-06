@@ -69,6 +69,7 @@ export class CommercialService {
       invariant(production.status !== 'growing', 'VALIDATION', 'Oferta imediata exige produção colhida.')
       invariant(values.availableFrom <= this.env.now().slice(0, 10), 'VALIDATION', 'Oferta imediata não pode ter disponibilidade futura.')
     } else {
+      invariant(values.availableFrom > this.env.now().slice(0, 10), 'VALIDATION', 'Colheita futura exige data de disponibilidade futura.')
       invariant(values.availableFrom >= production.expectedHarvestDate, 'VALIDATION', 'Disponibilidade anterior à colheita prevista.')
     }
   }

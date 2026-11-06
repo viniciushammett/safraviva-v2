@@ -1,3 +1,4 @@
+import { PlanningAction } from '@/modules/production/planning-action'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -49,6 +50,7 @@ export function PlanningForm({ products, regions, revision }: { products: Produc
       <p className="mt-5 text-sm leading-6">{simulation.result.recommendation}</p>
       {simulation.result.market.status === 'available' && <details className="mt-4 text-xs leading-5 text-muted-foreground"><summary className="cursor-pointer">Análise baseada em cenário de referência · 30 dias · metodologia</summary><p className="mt-2">Referência: {new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(simulation.result.market.analysis.calculatedAt))}. {simulation.result.market.analysis.methodology}</p></details>}
       <p className="mt-4 text-xs leading-5 text-muted-foreground">{simulation.result.disclaimer}</p>
+      <PlanningAction />
     </section>}
   </section>
 }

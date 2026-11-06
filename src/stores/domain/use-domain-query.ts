@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useDomainStore } from '@/stores/domain/domain-store'
 
 // Pass a stable query (useCallback or a module function). No localStorage in React.
-export function useDomainQuery<T>(query: () => Promise<T>) {
+export function useDomainQuery<T>(query: () => Promise<T>, { keepPreviousData = false }: { keepPreviousData?: boolean } = {}) {
   const revision = useDomainStore((state) => state.revision)
   const status = useDomainStore((state) => state.status)
   const initializationError = useDomainStore((state) => state.error)
@@ -18,5 +18,5 @@ export function useDomainQuery<T>(query: () => Promise<T>) {
     return () => { active = false }
   }, [query, revision, status])
   const current = result.revision === revision && result.query === query && status === 'ready'
-  return { data: current ? result.data : null, error: initializationError ?? (current ? result.error : null), loading: status !== 'error' && !current }
+  return { data: current || (keepPreviousData && result.query === query && status === 'ready') ? result.data : null, error: initializationError ?? (current ? result.error : null), loading: status !== 'error' && !current }
 }
