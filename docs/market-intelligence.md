@@ -37,4 +37,19 @@ Os quatro produtos têm períodos de 7, 15 e 30 dias, com taxas diárias sintét
 
 Não há migração ou restauração automática de cenários persistidos: instalações antigas continuam válidas e retornam indisponibilidade para as combinações ausentes. O cenário ampliado é usado em novas inicializações ou na restauração explícita já existente.
 
-O motor não modela custos, clima, sazonalidade, logística, capacidade de absorção do volume planejado, validade temporal ou incerteza estatística. Não infere demanda a partir dos pedidos existentes, não verifica se a análise ainda é atual e não faz previsão de colheita. Data e metodologia devem acompanhar a apresentação dos resultados. Recomendações e risco são orientativos e não constituem avaliação financeira definitiva. A Sprint 2B.2 não está implementada.
+O motor não modela custos, clima, sazonalidade, logística, capacidade de absorção do volume planejado, validade temporal ou incerteza estatística. Não infere demanda a partir dos pedidos existentes, não verifica se a análise ainda é atual e não faz previsão de colheita. Data e metodologia devem acompanhar a apresentação dos resultados. Recomendações e risco são orientativos e não constituem avaliação financeira definitiva. A interface operacional da Sprint 2B.2 consome esses contratos sem alterar as regras do motor.
+
+
+## Interface operacional — Sprint 2B.2
+
+A página de Inteligência de Mercado reutiliza `PageHeader`, `Button`, o store de sincronização e `useDomainQuery`. As opções vêm do snapshot comercial, limitadas aos produtos que possuem análises e às regiões cadastradas nelas. Uma combinação específica ainda pode estar indisponível; esse estado é mostrado sem indicadores ou gráfico fictícios.
+
+`AnalysisResult` apresenta os indicadores e recomendações retornados por `query`. `MarketChart` usa Recharts com barras agregadas, tooltip em kg, legenda, adaptação à largura e resumo textual acessível. Carrega sob demanda; não existe série diária inferida. Metodologia e referência ficam em painel expansível.
+
+`PlanningForm` usa React Hook Form e `zodResolver` com `commercialPlanSchema`, exportado do serviço e também usado por `simulate`. As regras de validação não foram copiadas para React. O resultado mantém o objeto completo, inclusive `productionDraft`, junto do input submetido. Edições posteriores do formulário não mudam os resultados anteriores e exigem nova simulação; a identificação do plano submetido permanece visível. Não há botão de cadastro: ainda falta o contrato autorizado com o módulo de produção.
+
+`useIntelligenceSession` é um store Zustand somente em memória para filtros, formulário e resultados. Navegar entre módulos preserva a sessão; recarregar a aplicação a descarta. Não escreve no cenário comercial nem acessa localStorage. Mudanças de revisão do domínio geram avisos para atualizar consultas e simulações anteriores. Não há restauração ou migração automática dos cenários antigos.
+
+A interface identifica o cenário de referência e disponibiliza a metodologia sintética completa. A simulação sempre usa 30 dias independentemente do filtro de consulta. A data de colheita é informativa. Não há cadastro de produção ou implementação da Sprint 3.
+
+Validação automatizada: testes do motor, persistência, navegação e página, incluindo opções, filtros, gráfico real com dimensão fixa no ambiente de testes, recomendações, erros, indisponibilidade, preservação de sessão e comparação integral do estado comercial antes/depois de simular. Os testes DOM não substituem revisão visual em navegador real.

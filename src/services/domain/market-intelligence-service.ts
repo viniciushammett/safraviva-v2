@@ -14,7 +14,7 @@ export type MarketQueryResult = { status: 'unavailable'; reason: UnavailableReas
   indicators: { demandGapKg: number; demandSupplyRatio: number | null; demandSupplyPercent: number | null }
   guidance: ReturnType<typeof recommendMarket>
 }
-const simulationSchema = createProductionSchema.pick({ productId: true, estimatedQuantityKg: true, expectedHarvestDate: true }).extend({ region: z.string().trim().min(1), desiredPricePerKg: z.number().finite().positive().max(1e9).refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 0.00001) })
+export const commercialPlanSchema = createProductionSchema.pick({ productId: true, expectedHarvestDate: true }).extend({ plannedQuantityKg: createProductionSchema.shape.estimatedQuantityKg, region: z.string().trim().min(1), desiredPricePerKg: z.number().finite().positive().max(1e9).refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 0.00001) })
 export interface CommercialPlanInput { productId: string; region: string; plannedQuantityKg: number; expectedHarvestDate: string; desiredPricePerKg: number }
 
 /** Read-only service: no transaction or storage access. Latest exact match wins. */
@@ -35,7 +35,7 @@ export class MarketIntelligenceService {
   }
 
   async simulate(input: CommercialPlanInput) {
-    const parsed = simulationSchema.safeParse({ productId: input.productId, region: input.region, estimatedQuantityKg: input.plannedQuantityKg, expectedHarvestDate: input.expectedHarvestDate, desiredPricePerKg: input.desiredPricePerKg })
+    const parsed = commercialPlanSchema.safeParse(input)
     invariant(parsed.success, 'VALIDATION', parsed.error?.issues[0]?.message ?? 'Planejamento inválido.')
     // No extrapolation to the harvest date: this is explicitly a 30-day reference scenario.
     const market = await this.query({ productId: parsed.data.productId, region: parsed.data.region, periodDays: 30 })
@@ -46,7 +46,7 @@ export class MarketIntelligenceService {
       priceDifferencePercent: analysis ? priceDifferencePercent(input.desiredPricePerKg, analysis.referencePricePerKg) : null,
       ...recommendMarket(analysis, input.desiredPricePerKg),
       market,
-      productionDraft: { productId: parsed.data.productId, estimatedQuantityKg: parsed.data.estimatedQuantityKg, harvestedQuantityKg: 0, expectedHarvestDate: parsed.data.expectedHarvestDate, status: 'growing' as const },
+      productionDraft: { productId: parsed.data.productId, estimatedQuantityKg: parsed.data.plannedQuantityKg, harvestedQuantityKg: 0, expectedHarvestDate: parsed.data.expectedHarvestDate, status: 'growing' as const },
       region: parsed.data.region,
       disclaimer: 'Receita bruta potencial, sem dedução de custos e sem garantia de realização. Risco orientativo, sem avaliação financeira definitiva. Referência de 30 dias; não é projeção para a colheita.',
     }
