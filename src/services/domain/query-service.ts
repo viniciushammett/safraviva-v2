@@ -1,3 +1,4 @@
+import { availableCatalog, supplierDirectory } from '@/domain/operational-analytics'
 import { availableOrderActions } from '@/domain/order-actions'
 import { requireOrganization } from '@/services/domain/command-context'
 import { invariant } from '@/domain/errors'
@@ -27,13 +28,11 @@ export class DomainQueryService {
     }
   }
   async snapshot() { return this.database.snapshot() }
-  private catalog(data: DomainData) {
-    return data.offers.filter((offer) => offer.status === 'published' && availableQuantity(data, offer) > 0 && data.organizations.some((org) => org.id === offer.producerOrganizationId && org.active)).map((offer) => {
-      const producer = data.organizations.find((org) => org.id === offer.producerOrganizationId)!
-      const production = data.productions.find((row) => row.id === offer.productionId)!
-      const product = data.products.find((row) => row.id === production.productId)!
-      return { ...offer, availableQuantityKg: availableQuantity(data, offer), productName: product.name, category: product.category, producerName: producer.name, region: `${producer.city}/${producer.state}` }
-    })
+  private catalog(data: DomainData) { return availableCatalog(data) }
+  async suppliers(buyerId: string) {
+    const data = await this.database.snapshot()
+    requireOrganization(data, buyerId, 'buyer')
+    return supplierDirectory(data, buyerId)
   }
   async availableOffers() { return this.catalog(await this.database.snapshot()) }
   async marketplace(organizationId: string) {

@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { useCallback, useState } from 'react'
 import { PageHeader } from '@/components/shared/page-header'
 import { Button } from '@/components/ui/button'
@@ -8,19 +9,22 @@ import { cellClass, currency, dateLabel, fieldClass, quantity } from '@/modules/
 import { OfferPanel } from './offer-panel'
 export function MarketplacePage() {
   const workspace = useActiveWorkspace()
-  return <><PageHeader eyebrow="Compras B2B" title="Mercado Agrícola" description="Consulte ofertas regionais e solicite compras diretamente aos produtores." />{workspace?.profile === 'buyer' ? <MarketplaceWorkspace key={workspace.id} organizationId={workspace.id} /> : <p role="status">Selecione uma organização compradora para consultar o mercado.</p>}</>
+  const [params] = useSearchParams()
+  return <><PageHeader eyebrow="Compras B2B" title="Mercado Agrícola" description="Consulte ofertas regionais e solicite compras diretamente aos produtores." />{workspace?.profile === 'buyer' ? <MarketplaceWorkspace key={workspace.id} organizationId={workspace.id} initialOffer={params.get('offer')} initialProducer={params.get('producer')} /> : <p role="status">Selecione uma organização compradora para consultar o mercado.</p>}</>
 }
-function MarketplaceWorkspace({ organizationId }: { organizationId: string }) {
+function MarketplaceWorkspace({ organizationId, initialOffer, initialProducer }: { organizationId: string; initialOffer: string | null; initialProducer: string | null }) {
   const load = useCallback(() => domainQueryService.marketplace(organizationId), [organizationId])
   const { data, loading, error } = useDomainQuery(load, { keepPreviousData: true })
+  const [producerFilter, setProducerFilter] = useState(initialProducer ?? '')
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState('')
   const [category, setCategory] = useState('')
   const [availability, setAvailability] = useState('')
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialOffer)
   const [message, setMessage] = useState('')
-  const offers = data?.filter((o) => `${o.productName} ${o.producerName}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')) && (!region || o.region === region) && (!category || o.category === category) && (!availability || o.availabilityType === availability)) ?? []
+  const offers = data?.filter((o) => (!producerFilter || o.producerOrganizationId === producerFilter) && `${o.productName} ${o.producerName}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')) && (!region || o.region === region) && (!category || o.category === category) && (!availability || o.availabilityType === availability)) ?? []
   return <>
+    {producerFilter && <div className="mb-4 flex flex-wrap items-center gap-3 text-sm"><p>Ofertas do fornecedor selecionado.</p><Button variant="outline" size="sm" onClick={() => setProducerFilter('')}>Mostrar todos os fornecedores</Button></div>}
     {message && <p role="status" className="mb-5 rounded-lg border bg-muted p-4 text-sm text-primary">{message}</p>}
     {error && <p role="alert" className="mb-4 text-sm text-red-700">{error}</p>}
     <section className="rounded-xl border bg-white shadow-soft" aria-label="Ofertas disponíveis">

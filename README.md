@@ -1,6 +1,6 @@
 # SafraViva 2.0
 
-Plataforma de Inteligência Comercial Agrícola com inteligência de mercado, produção, ofertas, marketplace, pedidos e logística colaborativa local. Implementação concluída até a Sprint 4A.
+Plataforma de Inteligência Comercial Agrícola com inteligência de mercado, produção, ofertas, marketplace, pedidos e logística colaborativa local. Implementação concluída até a Sprint 4B.
 
 ## Execução
 
@@ -148,4 +148,12 @@ O schema local migra da versão 1 para 2 preservando dados comerciais e mantendo
 
 Para uma demonstração integrada sem substituir o QA, abra “Cenário logístico de referência” e confirme a importação aditiva de registros sintéticos. Sugestões entre produtores são não contratadas; cada produtor só pode registrar transporte para seus próprios pedidos. Início do transporte e entrega continuam exigindo ações do prestador nos serviços existentes, sem terceiro ambiente de usuário.
 
-Consulte [a documentação técnica da logística](docs/collaborative-logistics.md) para contratos, migração, fórmulas, limites, cenário e políticas do mapa. Execute `npm test -- --run`, `npm run lint` e `npm run build` para validação completa. A Sprint 4B não está implementada.
+Consulte [a documentação técnica da logística](docs/collaborative-logistics.md) para contratos, migração, fórmulas, limites, cenário e políticas do mapa. Execute `npm test -- --run`, `npm run lint` e `npm run build` para validação completa. A Sprint 4B acrescenta os dashboards operacionais e o diretório de fornecedores descritos abaixo.
+
+## Sprint 4B — Visão Geral e Fornecedores
+
+As rotas de Visão Geral do produtor e comprador apresentam indicadores derivados do domínio, gráfico Recharts de entregas em 7/30/90 dias, pedidos recentes e oportunidades. O produtor também recebe alertas operacionais e recomendações do motor de mercado; o comprador vê ofertas com prioridade cadastral regional.
+
+Fornecedores oferece diretório, perfil, ofertas e histórico concluído exclusivo do comprador. Favoritos são persistidos por comprador em `safraviva-supplier-favorites`, separados do schema comercial. Erros de preferências não apagam dados nem impedem a consulta do diretório.
+
+As definições dos indicadores, períodos, privacidade, persistência e limitações estão em [Dashboards e Fornecedores](docs/operational-dashboards-suppliers.md). Não houve nova migração comercial ou integração externa. A Sprint 5 não foi iniciada.

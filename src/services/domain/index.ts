@@ -1,3 +1,6 @@
+import { SupplierFavoritesRepository } from '@/repositories/supplier-favorites-repository'
+import { SupplierFavoritesService } from '@/services/domain/supplier-favorites-service'
+import { DashboardService } from '@/services/domain/dashboard-service'
 import { browserDomainStorage, LocalDomainDatabase } from '@/repositories/local/domain-database'
 import { createLocalDomainRepositories } from '@/repositories/local/domain-repositories'
 import { CommercialService } from '@/services/domain/commercial-service'
@@ -15,3 +18,8 @@ export const restoreInitialScenario = (confirmation: { confirmed: boolean }) => 
 export { MarketIntelligenceService } from '@/services/domain/market-intelligence-service'
 
 export const marketIntelligenceService = new MarketIntelligenceService(domainDatabase)
+
+export const dashboardService = new DashboardService(domainDatabase)
+
+export const supplierFavoritesRepository = new SupplierFavoritesRepository(browserDomainStorage)
+export const supplierFavoritesService = new SupplierFavoritesService(domainDatabase, supplierFavoritesRepository)

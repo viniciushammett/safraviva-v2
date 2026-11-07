@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { useCallback, useState } from 'react'
 import { PageHeader } from '@/components/shared/page-header'
 import { Button } from '@/components/ui/button'
@@ -10,12 +11,13 @@ import { orderStatuses, timestampLabel } from '@/modules/commercial/presentation
 import { OrderPanel } from './order-panel'
 export function OrdersPage() {
   const workspace = useActiveWorkspace()
-  return <><PageHeader eyebrow="Operação comercial" title={workspace?.profile === 'producer' ? 'Pedidos e Vendas' : 'Pedidos e Compras'} description="Acompanhe solicitações, confirmações e o histórico das suas relações comerciais." />{workspace ? <OrdersWorkspace key={workspace.id} organizationId={workspace.id} producer={workspace.profile === 'producer'} /> : <p role="status">Selecione uma organização para consultar seus pedidos.</p>}</>
+  const [params] = useSearchParams()
+  return <><PageHeader eyebrow="Operação comercial" title={workspace?.profile === 'producer' ? 'Pedidos e Vendas' : 'Pedidos e Compras'} description="Acompanhe solicitações, confirmações e o histórico das suas relações comerciais." />{workspace ? <OrdersWorkspace key={workspace.id} organizationId={workspace.id} producer={workspace.profile === 'producer'} initialOrder={params.get('order')} /> : <p role="status">Selecione uma organização para consultar seus pedidos.</p>}</>
 }
-function OrdersWorkspace({ organizationId, producer }: { organizationId: string; producer: boolean }) {
+function OrdersWorkspace({ organizationId, producer, initialOrder }: { organizationId: string; producer: boolean; initialOrder: string | null }) {
   const load = useCallback(() => domainQueryService.ordersWorkspace(organizationId), [organizationId])
   const { data, loading, error } = useDomainQuery(load, { keepPreviousData: true })
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialOrder)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [message, setMessage] = useState('')
