@@ -1,3 +1,4 @@
+import { referencePartners } from '@/data/logistics-reference'
 import { workspaces } from '@/data/workspaces'
 import { orderTotal } from '@/domain/calculations'
 import type { DomainData, DomainEvent, EventType, Order, OrderStatus } from '@/types/domain'
@@ -122,5 +123,6 @@ export function createInitialScenario(): DomainData {
   for (const offer of data.offers.filter((row) => row.status === 'closed')) event('offer', offer.id, 'offer_closed', updatedAt, { actorOrganizationId: offer.producerOrganizationId, fromStatus: 'published', toStatus: 'closed' })
   for (const production of data.productions.filter((row) => row.status === 'finished')) event('production', production.id, 'production_updated', updatedAt, { actorOrganizationId: production.producerOrganizationId, fromStatus: 'harvested', toStatus: 'finished' })
   data.domainEvents.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+  for (const org of data.organizations) if (referencePartners[org.id]) org.logisticsProfile = structuredClone(referencePartners[org.id])
   return data
 }

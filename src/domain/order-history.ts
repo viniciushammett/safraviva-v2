@@ -2,6 +2,7 @@ import { invariant } from '@/domain/errors'
 import type { DomainData, EventType, OrderStatus } from '@/types/domain'
 
 const transitions: Partial<Record<EventType, { from: (OrderStatus | null)[]; to?: OrderStatus }>> = {
+  order_delivery_updated: { from: ['pending_confirmation', 'confirmed', 'preparing'] },
   order_requested: { from: [null], to: 'pending_confirmation' },
   order_confirmed: { from: ['pending_confirmation'], to: 'confirmed' },
   order_rejected: { from: ['pending_confirmation'], to: 'rejected' },

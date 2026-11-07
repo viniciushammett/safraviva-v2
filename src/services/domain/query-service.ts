@@ -56,7 +56,7 @@ export class DomainQueryService {
       const cancellationRequested = ['confirmed', 'preparing'].includes(order.status) && history.some((event) => event.eventType === 'order_cancellation_requested')
       const operation = data.logistics.find((row) => row.orderIds.includes(order.id))
       return {
-        ...order, productName: product.name, producerName: producer.name, buyerName: buyer.name,
+        ...order, delivery: order.delivery, productName: product.name, producerName: producer.name, buyerName: buyer.name,
         origin: `${producer.city}/${producer.state}`, destination: `${buyer.city}/${buyer.state}`,
         availabilityType: offer.availabilityType, availableFrom: offer.availableFrom,
         history, cancellationRequested, actions: availableOrderActions(order, organization.type, cancellationRequested),

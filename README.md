@@ -1,6 +1,6 @@
 # SafraViva 2.0
 
-Plataforma de Inteligência Comercial Agrícola. A Sprint 1 entrega a navegação e a identidade corporativa; a Sprint 2A acrescenta o domínio comercial local, sem alterar as telas existentes.
+Plataforma de Inteligência Comercial Agrícola com inteligência de mercado, produção, ofertas, marketplace, pedidos e logística colaborativa local. Implementação concluída até a Sprint 4A.
 
 ## Execução
 
@@ -20,7 +20,7 @@ npm run build  # TypeScript strict e bundle em dist/
 npm run preview
 ```
 
-Produção requer fallback de todas as rotas SPA para `index.html`. Não há variáveis de ambiente obrigatórias, backend ou chamadas externas. Inter é servida localmente.
+Produção requer fallback de todas as rotas SPA para `index.html`. Não há variáveis de ambiente obrigatórias ou backend. O mapa opcional usa tiles públicos do OpenStreetMap e requer conexão. O restante do fluxo funciona sem chamadas externas. Inter é servida localmente.
 
 ## Stack e estrutura
 
@@ -30,7 +30,7 @@ React, TypeScript strict, Vite, Tailwind CSS 3, shadcn/ui sobre Radix UI, React 
 src/
   app/                      Layout, rotas por perfil e provider de feedback
   components/               UI, navegação e feedback preservados da Sprint 1
-  modules/                  Páginas estruturais dos sete módulos
+  modules/                  Páginas e componentes operacionais por módulo
   types/domain.ts           Modelos das nove entidades e contratos auxiliares
   domain/                   Schemas, integridade, cálculos, histórico e erros
   data/commercial-scenario.ts Cenário sintético determinístico
@@ -105,11 +105,11 @@ O histórico dos pedidos é validado contra as transições permitidas e o estad
 
 ## Persistência, recuperação e restauração
 
-- Chave `safraviva-domain`, envelope `{ schemaVersion: 1, initializedAt, data }`.
+- Chave `safraviva-domain`, envelope `{ schemaVersion: 2, initializedAt, data }`.
 - Inicialização automática em segundo plano no primeiro acesso, carregada separadamente para preservar o carregamento da interface. Recarregamentos validam e reutilizam o cenário, sem recriá-lo.
 - Tipos, identificadores únicos, referências, papéis organizacionais, volumes, totais, carga, estados e histórico comercial são validados no carregamento e antes de cada commit.
 - JSON/dados inválidos no schema atual são copiados integralmente para `safraviva-domain.recovery` antes da restauração automática controlada. A última cópia de recuperação é mantida; não é um arquivo ilimitado de backups.
-- Versões de schema diferentes são bloqueadas sem sobrescrita. Esta é a primeira versão do domínio; não há migração legada. A evolução deve adicionar migrações explícitas ou usar restauração confirmada.
+- O schema 1 é migrado aditivamente para 2 com backup. Falhas de migração preservam o cenário anterior. Versões futuras desconhecidas são bloqueadas sem sobrescrita.
 - Erros de leitura/gravação, armazenamento bloqueado ou quota excedida são reportados. Não há fallback comercial silencioso para memória, que poderia aparentar persistência inexistente.
 - Escrita em um único `setItem`, com fila por adaptador para serializar comandos na mesma aba. Web Locks, quando disponível, coordena instâncias/abas cooperantes. Eventos `storage` invalidam consultas de outras abas. Sem Web Locks, a garantia é limitada à mesma aba/adaptador; não há garantia de concorrência distribuída ou contra manipulação externa do localStorage.
 - `safraviva-workspace` e seu store original são independentes: a inicialização e a restauração do domínio não mudam o ambiente ativo nem a preferência da sidebar.
@@ -125,16 +125,27 @@ await restoreInitialScenario({ confirmed: true })
 
 ## Zustand e consultas React
 
-`useDomainStore` guarda somente revisão, estado da inicialização, resultado da recuperação e erro. Não mantém cópia das entidades. `useDomainQuery` executa uma função estável de consulta (definida no módulo ou com `useCallback`) e oferece `data`, `loading` e `error`; revisões invalidam resultados, inclusive após restauração. O hook protege contra respostas obsoletas e desmontagem. As telas atuais continuam sem consultar ou exibir o cenário comercial.
+`useDomainStore` guarda somente revisão, estado da inicialização, resultado da recuperação e erro. Não mantém cópia das entidades. `useDomainQuery` executa uma função estável de consulta (definida no módulo ou com `useCallback`) e oferece `data`, `loading` e `error`; revisões invalidam resultados, inclusive após restauração. O hook protege contra respostas obsoletas e desmontagem. As telas operacionais consomem os serviços sem acessar localStorage. A opção keepPreviousData preserva formulários durante atualizações da mesma consulta.
 
 ## Verificação
 
-79 testes automatizados (incluindo os 16 da Sprint 1) cobrem criação, limites, reservas, confirmação concorrente, idempotência persistida, cancelamentos, logística, históricos, referências inválidas, precisão decimal, falhas de armazenamento, recarga, restauração, schema incompatível, sincronização Zustand e todas as nove rotas. Os testes usam DOM simulado; não substituem validação visual em navegador real.
+A suíte automatizada completa cobre criação, limites, reservas, confirmação concorrente, idempotência persistida, cancelamentos, logística, históricos, referências inválidas, precisão decimal, falhas de armazenamento, recarga, restauração, schema incompatível, sincronização Zustand e todas as nove rotas. Os testes usam DOM simulado; não substituem validação visual em navegador real.
 
 Lint e build devem passar com os comandos acima. O build pode emitir avisos de comentários `@__PURE__` dentro do Zod; o Rollup remove essas anotações, sem falha de compilação. A auditoria desta entrega foi executada contra o registro npm e não reportou vulnerabilidades.
 
 ## Limitações e próximos passos
 
-Sem novas telas, marketplace visual, formulários, dashboards comerciais, gráficos, mapas, IA, integrações externas, backend, autenticação ou pagamentos. Os serviços operam por identificador de organização fornecido pelo chamador, sem identidade autenticada. Os dados são locais ao navegador/origem e não sincronizam entre dispositivos. Persistência em JSON e validação completa são adequadas ao cenário limitado, não a grandes volumes ou sistemas multiusuário de produção.
+Sem backend, autenticação real, pagamentos, GPS, otimização rodoviária ou contratação externa. O mapa opcional usa OpenStreetMap; cálculos comerciais e logísticos continuam locais. Os serviços operam por identificador de organização fornecido pelo chamador, sem identidade autenticada. Os dados são locais ao navegador/origem e não sincronizam entre dispositivos. Persistência em JSON e validação completa são adequadas ao cenário limitado, não a grandes volumes ou sistemas multiusuário de produção.
 
-Para a futura Sprint 2B, definir a jornada visual priorizada, consumir os serviços com estados de carregamento/erro, apresentar os dados como demonstrativos e obter confirmação antes de ações destrutivas. Integração REST deve implementar autorização real e transações no servidor. A Sprint 2B não foi iniciada.
+Evoluções futuras devem preservar contratos, migrações explícitas e autorização por organização; integração REST requer autorização real e transações no servidor. Recomendações determinísticas e estimativas não são garantias comerciais ou financeiras.
+
+
+## Sprint 4A — Logística Colaborativa
+
+A rota `/producer/logistics` organiza entregas próprias, sugere cargas compatíveis entre produtores e compara frete individual/compartilhado com parâmetros explícitos. O mapa operacional React Leaflet é carregado sob demanda, com atribuição OpenStreetMap e fallback independente dos formulários. Não há GPS ou roteirização rodoviária real.
+
+O schema local migra da versão 1 para 2 preservando dados comerciais e mantendo os bytes anteriores em `safraviva-domain.migration-v1`. Destinos não são preenchidos automaticamente. Complete origem, destino e janela nos painéis de entrega; confirme pedidos pendentes pelo módulo comercial antes de organizar transporte. Pedidos já vinculados aparecem em Transportes em Andamento.
+
+Para uma demonstração integrada sem substituir o QA, abra “Cenário logístico de referência” e confirme a importação aditiva de registros sintéticos. Sugestões entre produtores são não contratadas; cada produtor só pode registrar transporte para seus próprios pedidos. Início do transporte e entrega continuam exigindo ações do prestador nos serviços existentes, sem terceiro ambiente de usuário.
+
+Consulte [a documentação técnica da logística](docs/collaborative-logistics.md) para contratos, migração, fórmulas, limites, cenário e políticas do mapa. Execute `npm test -- --run`, `npm run lint` e `npm run build` para validação completa. A Sprint 4B não está implementada.

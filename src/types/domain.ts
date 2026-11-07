@@ -1,3 +1,4 @@
+import type { DeliveryInformation, LogisticsPartnerProfile } from '@/types/logistics'
 export type OrganizationType = 'producer' | 'buyer' | 'logistics_partner'
 export interface Organization {
   id: string
@@ -6,6 +7,7 @@ export interface Organization {
   city: string
   state: string
   active: boolean
+  logisticsProfile?: LogisticsPartnerProfile
 }
 export interface User {
   id: string
@@ -40,6 +42,7 @@ export interface Offer {
 }
 export type OrderStatus = 'pending_confirmation' | 'confirmed' | 'preparing' | 'in_transit' | 'delivered' | 'rejected' | 'cancelled'
 export interface Order {
+  delivery?: DeliveryInformation
   id: string
   offerId: string
   producerOrganizationId: string
@@ -79,6 +82,7 @@ export type AggregateType = 'production' | 'offer' | 'order' | 'logistics'
 export type EventType =
   | 'production_created' | 'production_updated'
   | 'offer_created' | 'offer_updated' | 'offer_published' | 'offer_paused' | 'offer_closed'
+  | 'order_delivery_updated'
   | 'order_requested' | 'order_confirmed' | 'order_rejected' | 'order_cancelled'
   | 'order_cancellation_requested' | 'order_preparing' | 'order_dispatched' | 'order_delivered'
   | 'logistics_transport_requested' | 'logistics_created' | 'transport_requested' | 'logistics_dispatched' | 'logistics_delivered'

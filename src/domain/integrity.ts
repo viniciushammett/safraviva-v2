@@ -31,6 +31,7 @@ export function validateDomainData(input: unknown): DomainData {
     invariant(offer.createdAt <= offer.updatedAt, 'VALIDATION', 'Datas da oferta inconsistentes.')
   }
   for (const order of data.orders) {
+    invariant(!order.delivery || order.delivery.weightKg === order.quantityKg, 'VALIDATION', 'Peso logístico deve corresponder à quantidade do pedido.')
     const offer = data.offers.find((row) => row.id === order.offerId)
     invariant(offer && offer.producerOrganizationId === order.producerOrganizationId, 'VALIDATION', 'Oferta do pedido inexistente ou incompatível.')
     org(order.producerOrganizationId, 'producer')

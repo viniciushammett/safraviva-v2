@@ -1,3 +1,4 @@
+import { migrateDomainV1 } from '@/repositories/local/domain-migrations'
 import { createInitialScenario } from '@/data/commercial-scenario'
 import { DomainError, invariant } from '@/domain/errors'
 import { validateDomainData } from '@/domain/integrity'
@@ -5,8 +6,8 @@ import type { DomainData } from '@/types/domain'
 import type { DomainUnitOfWork, StoragePort } from '@/repositories/contracts/domain-repositories'
 
 export const DOMAIN_STORAGE_KEY = 'safraviva-domain'
-export const DOMAIN_SCHEMA_VERSION = 1
-export type InitializationStatus = 'created' | 'loaded' | 'recovered'
+export const DOMAIN_SCHEMA_VERSION = 2
+export type InitializationStatus = 'created' | 'loaded' | 'recovered' | 'migrated'
 interface Envelope { schemaVersion: number; initializedAt: string; data: DomainData }
 const queues = new WeakMap<StoragePort, Promise<unknown>>()
 export const browserDomainStorage: StoragePort = {
@@ -35,8 +36,8 @@ export class LocalDomainDatabase implements DomainUnitOfWork {
     queues.set(this.storage, next)
     return next
   }
-  private readRaw() {
-    try { return this.storage.getItem(this.key) }
+  private readRaw(key = this.key) {
+    try { return this.storage.getItem(key) }
     catch { throw new DomainError('STORAGE_UNAVAILABLE', 'Não foi possível ler o cenário local.') }
   }
   private write(key: string, value: string) {
@@ -62,6 +63,21 @@ export class LocalDomainDatabase implements DomainUnitOfWork {
         this.write(this.key, JSON.stringify(this.seed()))
         this.notify()
         return 'created'
+      }
+      let legacy: { schemaVersion?: number; initializedAt?: string; data?: unknown } | null = null
+      try { legacy = JSON.parse(raw) as { schemaVersion?: number; initializedAt?: string; data?: unknown } | null } catch { /* Existing recovery handles malformed JSON. */ }
+      if (legacy?.schemaVersion === 1) {
+        // A failed migration never enters recovery and never replaces the user's scenario.
+        let migrated: Envelope
+        try {
+          invariant(typeof legacy.initializedAt === 'string' && Number.isFinite(Date.parse(legacy.initializedAt)), 'VALIDATION', 'Data de inicialização inválida.')
+          migrated = { schemaVersion: DOMAIN_SCHEMA_VERSION, initializedAt: legacy.initializedAt, data: migrateDomainV1(legacy.data) }
+        } catch { throw new DomainError('INCOMPATIBLE_SCHEMA', 'Não foi possível migrar o cenário anterior. Os dados originais foram preservados.') }
+        if (this.readRaw() !== raw) throw new DomainError('CONFLICT', 'Cenário alterado durante a migração.')
+        if (this.readRaw(`${this.key}.migration-v1`) === null) this.write(`${this.key}.migration-v1`, raw)
+        this.write(this.key, JSON.stringify(migrated))
+        this.notify()
+        return 'migrated'
       }
       try { this.parse(raw); return 'loaded' }
       catch (error) {
