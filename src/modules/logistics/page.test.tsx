@@ -113,6 +113,19 @@ describe('logistics operational UI', () => {
     expect(screen.getByRole('button', { name: 'Organizar transporte' })).toBeTruthy()
     click('Organizar transporte'); expect(screen.getByRole('dialog', { name: 'Organizar transporte' })).toBeTruthy()
   })
+  it('saves delivery information after the optional map fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await demo(); await mount(); click('Carregar mapa')
+    expect(await screen.findByText(/Mapa indisponível. Continue/)).toBeTruthy()
+    const before = (await domainDatabase.snapshot()).orders.find((o) => o.id === 'reference-4a-order-0')!
+    fireEvent.click(within(pendingRow(before.id)).getByRole('button', { name: 'Revisar entrega' }))
+    change('Destino — local ou endereço', 'Destino revisado com mapa indisponível')
+    click('Salvar entrega'); await screen.findByText('Informações de entrega salvas.')
+    const after = (await domainDatabase.snapshot()).orders.find((o) => o.id === before.id)!
+    expect(after.delivery?.destination.label).toBe('Destino revisado com mapa indisponível')
+    expect(after.totalAmount).toBe(before.totalAmount)
+    expect(after.status).toBe(before.status)
+  })
   it('does not expose logistics workspace to a buyer', async () => {
     useWorkspaceStore.setState({ activeWorkspaceId: 'bom-preco' })
     render(<MemoryRouter><LogisticsPage /></MemoryRouter>)

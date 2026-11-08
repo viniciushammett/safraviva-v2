@@ -5,6 +5,8 @@ import { latLngBounds, type LatLngTuple } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { DeliveryRow } from './types'
 import { quantity } from '@/modules/production/presentation'
+import { Button } from '@/components/ui/button'
+import { isBlockedTile, operationalTileProvider } from './map-tiles'
 function Fit({ loads, selectedIds }: { loads: DeliveryRow[]; selectedIds: string[] }) {
   const map = useMap()
   useEffect(() => {
@@ -16,9 +18,23 @@ function Fit({ loads, selectedIds }: { loads: DeliveryRow[]; selectedIds: string
 }
 export default function OperationalMap({ loads, selectedIds, onSelect }: { loads: DeliveryRow[]; selectedIds: string[]; onSelect: (id: string) => void }) {
   const [tileError, setTileError] = useState(false)
-  return <div>{tileError && <p role="status" className="mb-3 text-sm text-amber-800">Mapa base indisponível. A operação logística continua disponível nas tabelas.</p>}
-    <MapContainer center={[-22.9, -47.06]} zoom={10} scrollWheelZoom={false} className="relative z-0 h-[clamp(16rem,40dvh,24rem)] w-full overflow-hidden rounded-lg" aria-label="Mapa operacional de referências">
-      <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution={'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'} eventHandlers={{ tileerror: () => setTileError(true) }} />
+  return <div>
+    {tileError && <p role="status" className="mb-3 text-sm text-amber-800">Mapa base indisponível. Os pontos permanecem como referências, sem base cartográfica. A operação logística continua disponível nas tabelas e formulários.</p>}
+    <Button type="button" variant="outline" className="mb-3" onClick={() => setTileError(!tileError)}>{tileError ? 'Tentar carregar base novamente' : 'Ocultar base cartográfica'}</Button>
+    <MapContainer center={[-22.9, -47.06]} zoom={10} minZoom={0} maxZoom={18} scrollWheelZoom={false} className="relative z-0 h-[clamp(16rem,40dvh,24rem)] w-full overflow-hidden rounded-lg" aria-label="Mapa operacional de referências">
+      {!tileError && <TileLayer {...operationalTileProvider} updateWhenIdle updateWhenZooming={false} keepBuffer={1} eventHandlers={{
+        tileloadstart: ({ tile }) => { tile.style.visibility = 'hidden' },
+        tileload: ({ tile }) => {
+          // A successful image load can still contain a provider's HTTP 200 block notice.
+          // Inspect the existing image: no duplicate requests, proxies or cache bypasses.
+          void isBlockedTile(tile as HTMLImageElement).then((blocked) => {
+            if (!tile.isConnected) return
+            if (blocked) setTileError(true)
+            else tile.style.visibility = ''
+          }).catch(() => { if (tile.isConnected) setTileError(true) })
+        },
+        tileerror: () => setTileError(true),
+      }} />}
       <Fit loads={loads} selectedIds={selectedIds} />
       {loads.map((load) => {
         const delivery = load.delivery
