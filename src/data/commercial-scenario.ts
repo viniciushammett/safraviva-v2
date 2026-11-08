@@ -6,7 +6,7 @@ import type { DomainData, DomainEvent, EventType, Order, OrderStatus } from '@/t
 // Fixed, reproducible synthetic fixtures; these are never claimed as observed market data.
 const createdAt = '2026-11-01T08:00:00.000Z'
 const updatedAt = '2026-11-04T16:00:00.000Z'
-export function createInitialScenario(): DomainData {
+export function createInitialScenario(referenceDate = '2026-11-07T12:00:00.000Z'): DomainData {
   const data: DomainData = {
     organizations: [
       ...workspaces.map((workspace) => ({ id: workspace.id, name: workspace.name, type: workspace.profile, city: 'Campinas', state: 'SP', active: true })),
@@ -122,6 +122,57 @@ export function createInitialScenario(): DomainData {
   }
   for (const offer of data.offers.filter((row) => row.status === 'closed')) event('offer', offer.id, 'offer_closed', updatedAt, { actorOrganizationId: offer.producerOrganizationId, fromStatus: 'published', toStatus: 'closed' })
   for (const production of data.productions.filter((row) => row.status === 'finished')) event('production', production.id, 'production_updated', updatedAt, { actorOrganizationId: production.producerOrganizationId, fromStatus: 'harvested', toStatus: 'finished' })
+  // Completed synthetic lots consume their own harvested stock, never today's offers.
+  // Only the new history is relative to this reference; legacy fixtures stay unchanged.
+  const history = [
+    { daysAgo: 25, producer: 'santa-clara', buyer: 'bom-preco', product: 'tomate', quantity: 120, price: 4.5 },
+    { daysAgo: 18, producer: 'boa-esperanca', buyer: 'bom-preco', product: 'batata', quantity: 150, price: 3.2 },
+    { daysAgo: 12, producer: 'santa-clara', buyer: 'restaurante-central', product: 'tomate', quantity: 80, price: 4.5 },
+    { daysAgo: 7, producer: 'santa-clara', buyer: 'bom-preco', product: 'tomate', quantity: 200, price: 4.5 },
+    { daysAgo: 3, producer: 'santa-clara', buyer: 'bom-preco', product: 'tomate', quantity: 100, price: 4.5 },
+  ]
+  function historyTime(daysAgo: number, hour: number) {
+    const date = new Date(referenceDate)
+    date.setUTCDate(date.getUTCDate() - daysAgo)
+    date.setUTCHours(hour, 0, 0, 0)
+    return date.toISOString()
+  }
+  for (const [index, fixture] of history.entries()) {
+    const suffix = String(index + 1).padStart(2, '0')
+    const productionId = `history-production-${suffix}`, offerId = `history-offer-${suffix}`
+    const id = `history-order-${suffix}`, operationId = `history-logistics-${suffix}`
+    const requestedAt = historyTime(fixture.daysAgo + 2, 8)
+    const confirmedAt = historyTime(fixture.daysAgo + 2, 9)
+    const preparingAt = historyTime(fixture.daysAgo + 1, 7)
+    const transportAt = historyTime(fixture.daysAgo + 1, 8)
+    const dispatchedAt = historyTime(fixture.daysAgo + 1, 10)
+    const deliveredAt = historyTime(fixture.daysAgo, 10)
+    const harvestedAt = historyTime(fixture.daysAgo + 3, 7)
+    data.productions.push({ id: productionId, producerOrganizationId: fixture.producer, productId: fixture.product, estimatedQuantityKg: fixture.quantity, harvestedQuantityKg: fixture.quantity, expectedHarvestDate: harvestedAt.slice(0, 10), status: 'finished', createdAt: harvestedAt, updatedAt: deliveredAt })
+    data.offers.push({ id: offerId, productionId, producerOrganizationId: fixture.producer, quantityKg: fixture.quantity, pricePerKg: fixture.price, availabilityType: 'immediate', availableFrom: harvestedAt.slice(0, 10), status: 'closed', createdAt: harvestedAt, updatedAt: deliveredAt })
+    const row: Order = { id, offerId, producerOrganizationId: fixture.producer, buyerOrganizationId: fixture.buyer, quantityKg: fixture.quantity, unitPrice: fixture.price, totalAmount: orderTotal(fixture.quantity, fixture.price), status: 'delivered', requestedAt, updatedAt: deliveredAt }
+    data.orders.push(row)
+    data.logistics.push({ id: operationId, partnerOrganizationId: 'rotas-do-campo', orderIds: [id], transportMode: 'individual', vehicleCapacityKg: 1000, totalLoadKg: fixture.quantity, estimatedCost: 120, status: 'delivered', createdAt: transportAt, updatedAt: deliveredAt })
+    function historyEvent(aggregateType: DomainEvent['aggregateType'], aggregateId: string, type: EventType, time: string, metadata: Record<string, unknown>) {
+      event(aggregateType, aggregateId, type, time, { fixture: 'commercial-history-v1', ...metadata })
+    }
+    historyEvent('production', productionId, 'production_created', harvestedAt, { actorOrganizationId: fixture.producer, toStatus: 'harvested', quantityKg: fixture.quantity })
+    historyEvent('offer', offerId, 'offer_created', harvestedAt, { actorOrganizationId: fixture.producer, toStatus: 'draft', quantityKg: fixture.quantity, pricePerKg: fixture.price })
+    historyEvent('offer', offerId, 'offer_published', harvestedAt, { actorOrganizationId: fixture.producer, fromStatus: 'draft', toStatus: 'published' })
+    // Reuse the commercial metadata and transition contracts of the original seed.
+    orderEvent(row, 'order_requested', null, 'pending_confirmation', requestedAt)
+    orderEvent(row, 'order_confirmed', 'pending_confirmation', 'confirmed', confirmedAt)
+    orderEvent(row, 'order_preparing', 'confirmed', 'preparing', preparingAt)
+    historyEvent('logistics', operationId, 'logistics_created', transportAt, { actorOrganizationId: 'rotas-do-campo', toStatus: 'awaiting_organization', orderIds: [id] })
+    historyEvent('logistics', operationId, 'logistics_transport_requested', transportAt, { actorOrganizationId: 'rotas-do-campo', fromStatus: 'awaiting_organization', toStatus: 'transport_requested' })
+    historyEvent('order', id, 'transport_requested', transportAt, { actorOrganizationId: 'rotas-do-campo', logisticsOperationId: operationId, fromStatus: 'preparing', toStatus: 'preparing' })
+    historyEvent('logistics', operationId, 'logistics_dispatched', dispatchedAt, { actorOrganizationId: 'rotas-do-campo', fromStatus: 'transport_requested', toStatus: 'in_transit' })
+    historyEvent('order', id, 'order_dispatched', dispatchedAt, { actorOrganizationId: 'rotas-do-campo', logisticsOperationId: operationId, fromStatus: 'preparing', toStatus: 'in_transit' })
+    historyEvent('logistics', operationId, 'logistics_delivered', deliveredAt, { actorOrganizationId: 'rotas-do-campo', fromStatus: 'in_transit', toStatus: 'delivered' })
+    historyEvent('order', id, 'order_delivered', deliveredAt, { actorOrganizationId: 'rotas-do-campo', logisticsOperationId: operationId, fromStatus: 'in_transit', toStatus: 'delivered' })
+    historyEvent('offer', offerId, 'offer_closed', deliveredAt, { actorOrganizationId: fixture.producer, fromStatus: 'published', toStatus: 'closed' })
+    historyEvent('production', productionId, 'production_updated', deliveredAt, { actorOrganizationId: fixture.producer, fromStatus: 'harvested', toStatus: 'finished' })
+  }
   data.domainEvents.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
   for (const org of data.organizations) if (referencePartners[org.id]) org.logisticsProfile = structuredClone(referencePartners[org.id])
   return data

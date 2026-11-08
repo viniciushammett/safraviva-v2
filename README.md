@@ -157,3 +157,25 @@ As rotas de Visão Geral do produtor e comprador apresentam indicadores derivado
 Fornecedores oferece diretório, perfil, ofertas e histórico concluído exclusivo do comprador. Favoritos são persistidos por comprador em `safraviva-supplier-favorites`, separados do schema comercial. Erros de preferências não apagam dados nem impedem a consulta do diretório.
 
 As definições dos indicadores, períodos, privacidade, persistência e limitações estão em [Dashboards e Fornecedores](docs/operational-dashboards-suppliers.md). Não houve nova migração comercial ou integração externa. A Sprint 5 não foi iniciada.
+
+### Histórico comercial demonstrativo
+
+O cenário inicial inclui cinco pedidos sintéticos entregues, exclusivamente para demonstração. Os valores representam negociações simuladas; não são faturamento real da SafraViva ou dos produtores. Os dashboards continuam calculando vendas, compras e séries a partir dos pedidos e de seus eventos de entrega, com os critérios existentes.
+
+| Pedido | Produtor → comprador | Produto | Quantidade | Preço/kg | Total | Entrega (UTC) |
+| --- | --- | --- | --- | --- | --- | --- |
+| `history-order-01` | Fazenda Santa Clara → Mercado Bom Preço | Tomate | 120 kg | R$ 4,50 | R$ 540,00 | 13/10/2026 |
+| `history-order-02` | Sítio Boa Esperança → Mercado Bom Preço | Batata | 150 kg | R$ 3,20 | R$ 480,00 | 20/10/2026 |
+| `history-order-03` | Fazenda Santa Clara → Restaurante Central | Tomate | 80 kg | R$ 4,50 | R$ 360,00 | 26/10/2026 |
+| `history-order-04` | Fazenda Santa Clara → Mercado Bom Preço | Tomate | 200 kg | R$ 4,50 | R$ 900,00 | 31/10/2026 |
+| `history-order-05` | Fazenda Santa Clara → Mercado Bom Preço | Tomate | 100 kg | R$ 4,50 | R$ 450,00 | 04/11/2026 |
+
+Total adicionado: **R$ 2.730,00 / 650 kg**. Santa Clara possui R$ 2.250,00 em vendas demonstrativas; Bom Preço possui R$ 2.370,00 em compras demonstrativas. Em 07/11/2026, ambos apresentam R$ 450,00 no gráfico de 7 dias; os gráficos de 30 e 90 dias abrangem todo esse histórico de cada organização. A diferença entre os totais das organizações corresponde às transações com outros parceiros.
+
+`createInitialScenario(referenceDate?)` usa a referência padrão `2026-11-07T12:00:00.000Z`. As cinco novas entregas ocorrem 25, 18, 12, 7 e 3 dias antes dessa referência, às 10h UTC; solicitação, confirmação, preparação e transporte precedem a entrega. É possível fornecer outra referência para reutilizar o histórico em testes/demonstrações, preservando as datas dos registros anteriores. A referência do seed é fixa e reproduzível; os filtros do dashboard continuam usando o relógio atual, portanto esses registros sairão naturalmente dos períodos com o tempo.
+
+Cada pedido utiliza um lote histórico próprio já finalizado, uma oferta encerrada e uma operação logística entregue. Os eventos são marcados como sintéticos. O domínio mantém os volumes entregues como estoque consumido nesses lotes; não há reservas sobre ofertas atuais nem novas operações ativas ou solicitações pendentes. Os registros anteriores permanecem inalterados.
+
+**Persistência:** um navegador sem cenário em `safraviva-domain` carrega automaticamente o seed enriquecido. Navegadores com dados válidos já persistidos continuam com seu cenário anterior, inclusive produções, ofertas, pedidos de QA (como cenoura de 200 kg), logística, eventos e favoritos. Não há importação automática, limpeza do localStorage ou alteração da versão 2 do schema. Para gravar a demonstração com o novo seed sem afetar o QA, use um perfil de navegador novo ou uma janela privativa sem dados dessa origem. A restauração manual existente continua exigindo confirmação e substitui o cenário local; não é necessária para este hotfix.
+
+Validação do hotfix: **372 testes aprovados em 19 arquivos** (346 anteriores e 26 novos), ESLint aprovado, `tsc -b` aprovado e build de produção aprovado. Os testes adicionais cobrem vínculos, cronologia, valores, estoque, logística concluída, períodos, isolamento e persistência de QA. O build emite avisos de anotação do Zod, importação estática/dinâmica do store e tamanho de chunk, sem impedir a geração.

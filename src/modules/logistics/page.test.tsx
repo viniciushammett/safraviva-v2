@@ -83,7 +83,7 @@ describe('logistics operational UI', () => {
     await within(panel).findByText('Individual (soma das viagens)')
     expect(within(panel).getByText('Economia estimada')).toBeTruthy()
     click('Solicitar transporte')
-    expect((await domainDatabase.snapshot()).logistics).toHaveLength(3)
+    expect((await domainDatabase.snapshot()).logistics).toHaveLength(8)
     click('Confirmar transporte')
     await screen.findByText(/Transporte solicitado com sucesso/)
     const data = await domainDatabase.snapshot()
@@ -92,12 +92,14 @@ describe('logistics operational UI', () => {
   })
   it('requires explicit confirmation for additive demo import', async () => {
     await mount(); click('Importar cenário de referência')
-    expect((await domainDatabase.snapshot()).orders).toHaveLength(8)
+    expect((await domainDatabase.snapshot()).orders).toHaveLength(13)
     click('Confirmar'); await screen.findByText(/Cenário sintético de referência disponível/)
-    expect((await domainDatabase.snapshot()).orders).toHaveLength(12)
+    expect((await domainDatabase.snapshot()).orders).toHaveLength(17)
   })
   it('consults operational status and history without advancing states', async () => {
-    await mount(); fireEvent.click(screen.getByRole('button', { name: 'Consultar operação' }))
+    await mount()
+    const operationRow = screen.getAllByRole('row').find((row) => row.textContent?.includes(logisticsReference('logistics-planned', 'operation')))!
+    fireEvent.click(within(operationRow).getByRole('button', { name: 'Consultar operação' }))
     const panel = screen.getByRole('dialog', { name: 'Operação logística' })
     expect(within(panel).getByText('Operação registrada')).toBeTruthy()
     expect(within(panel).queryByRole('button', { name: /Entregar|Iniciar transporte/ })).toBeNull()

@@ -5,13 +5,13 @@ const now = '2026-11-06T12:00:00.000Z'
 describe('operational analytics', () => {
   it('counts only delivered money and separates pending from in-progress statuses', () => {
     const data = createInitialScenario()
-    expect(commercialIndicators(data.orders)).toEqual({ completedAmount: 880, completedCount: 1, pendingCount: 2, inProgressCount: 3 })
+    expect(commercialIndicators(data.orders)).toEqual({ completedAmount: 3610, completedCount: 6, pendingCount: 2, inProgressCount: 3 })
     expect(commercialIndicators(data.orders.filter((o) => ['rejected', 'cancelled'].includes(o.status)))).toEqual({ completedAmount: 0, completedCount: 0, pendingCount: 0, inProgressCount: 0 })
   })
   it('isolates producer and buyer scopes', () => {
     const data = createInitialScenario()
-    expect(commercialIndicators(scopedOrders(data, 'santa-clara', 'producer')).completedAmount).toBe(0)
-    expect(commercialIndicators(scopedOrders(data, 'bom-preco', 'buyer'))).toMatchObject({ completedAmount: 0, pendingCount: 2, inProgressCount: 1 })
+    expect(commercialIndicators(scopedOrders(data, 'santa-clara', 'producer')).completedAmount).toBe(2250)
+    expect(commercialIndicators(scopedOrders(data, 'bom-preco', 'buyer'))).toMatchObject({ completedAmount: 2370, pendingCount: 2, inProgressCount: 1 })
     expect(commercialIndicators(scopedOrders(data, 'horizonte', 'producer')).completedAmount).toBe(880)
   })
   it('derives available production from commercial volume and committed orders, not advertised allocation', () => {
@@ -33,12 +33,13 @@ describe('operational analytics', () => {
     const data = createInitialScenario()
     const series = deliveredSeries(data, data.orders, days, now)
     expect(series.points).toHaveLength(days)
-    expect(series.orderCount).toBe(1)
-    expect(series.totalAmount).toBe(880)
-    expect(series.points.find((p) => p.date === '2026-11-04')?.amount).toBe(880)
+    expect(series.orderCount).toBe(days === 7 ? 3 : 6)
+    expect(series.totalAmount).toBe(days === 7 ? 2230 : 3610)
+    expect(series.points.find((p) => p.date === '2026-11-04')?.amount).toBe(1330)
   })
   it('uses delivery date instead of order creation or updatedAt', () => {
     const data = createInitialScenario()
+    data.orders = data.orders.filter((o) => o.id === 'order-delivered')
     const order = data.orders.find((o) => o.status === 'delivered')!
     order.updatedAt = now
     data.domainEvents.find((e) => e.aggregateId === order.id && e.eventType === 'order_delivered')!.timestamp = '2026-10-01T12:00:00.000Z'
@@ -47,7 +48,8 @@ describe('operational analytics', () => {
   })
   it('treats period boundaries as inclusive UTC dates and excludes future events', () => {
     const data = createInitialScenario()
-    const event = data.domainEvents.find((e) => e.eventType === 'order_delivered')!
+    data.orders = data.orders.filter((o) => o.id === 'order-delivered')
+    const event = data.domainEvents.find((e) => e.aggregateId === 'order-delivered' && e.eventType === 'order_delivered')!
     event.timestamp = '2026-10-31T00:00:00.000Z'
     expect(deliveredSeries(data, data.orders, 7, now).totalAmount).toBe(880)
     event.timestamp = '2026-10-30T23:59:59.999Z'
@@ -57,7 +59,7 @@ describe('operational analytics', () => {
   })
   it('does not invent delivery dates when events are missing', () => {
     const data = createInitialScenario(); data.domainEvents = data.domainEvents.filter((e) => e.eventType !== 'order_delivered')
-    expect(deliveredSeries(data, data.orders, 7, now)).toMatchObject({ missingDeliveryDate: 1, totalAmount: 0 })
+    expect(deliveredSeries(data, data.orders, 7, now)).toMatchObject({ missingDeliveryDate: 6, totalAmount: 0 })
   })
   it.each([0, 15, 31, NaN])('rejects unsupported period %s', (period) => {
     const data = createInitialScenario()
@@ -67,7 +69,7 @@ describe('operational analytics', () => {
     const data = createInitialScenario()
     const suppliers = supplierDirectory(data, 'bom-preco')
     expect(suppliers).toHaveLength(3)
-    expect(suppliers.find((s) => s.id === 'santa-clara')).toMatchObject({ activeOfferCount: 2, completedAmount: 0, completedCount: 0 })
+    expect(suppliers.find((s) => s.id === 'santa-clara')).toMatchObject({ activeOfferCount: 2, completedAmount: 1890, completedCount: 3 })
     expect(suppliers.find((s) => s.id === 'horizonte')?.products).toHaveLength(0)
     expect(supplierDirectory(data, 'hortifruti-regional').find((s) => s.id === 'horizonte')?.completedAmount).toBe(880)
     expect(new Set(availableCatalog(data).map((o) => o.producerOrganizationId)).size).toBe(2)

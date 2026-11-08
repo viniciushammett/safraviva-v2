@@ -74,7 +74,7 @@ describe('production operations', () => {
   it.each(['-1', '0', '1.0001'])('validates planned quantity %s', async (value) => {
     await mount(); click('Nova produção'); fillProduction(); change('Quantidade prevista (kg)', value); click('Confirmar produção')
     expect(await screen.findByRole('alert')).toBeTruthy()
-    expect((await domainDatabase.snapshot()).productions.length).toBe(4)
+    expect((await domainDatabase.snapshot()).productions.length).toBe(9)
   })
   it('shows production details', async () => {
     await mount(); fireEvent.click(within(row('prod-tomate-sc')).getByRole('button', { name: 'Detalhes' }))
@@ -118,7 +118,7 @@ describe('production operations', () => {
     await mount(); click('Nova produção'); fillProduction(); click('Confirmar produção')
     expect((await screen.findByRole('alert')).textContent).toBe('Persistência indisponível')
     expect(spy).toHaveBeenCalled()
-    expect((await domainDatabase.snapshot()).productions.length).toBe(4)
+    expect((await domainDatabase.snapshot()).productions.length).toBe(9)
   })
   it('denies access through a nonproducer workspace', async () => {
     useWorkspaceStore.setState({ activeWorkspaceId: 'bom-preco' })
@@ -199,8 +199,8 @@ describe('offer operations', () => {
   })
   it('isolates query results by organization, including finished production', async () => {
     const data = await domainQueryService.producerWorkspace('boa-esperanca')
-    expect(data.productions.map((p) => p.id)).toEqual(['prod-batata-be'])
-    expect(data.offers.map((o) => o.id)).toEqual(['offer-batata'])
+    expect(data.productions.map((p) => p.id)).toEqual(['prod-batata-be', 'history-production-02'])
+    expect(data.offers.map((o) => o.id)).toEqual(['offer-batata', 'history-offer-02'])
     const other = await domainQueryService.producerWorkspace('horizonte')
     expect(other.productions[0].status).toBe('finished')
     expect(other.productions[0].allocatedQuantityKg).toBe(800)

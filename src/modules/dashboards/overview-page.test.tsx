@@ -50,6 +50,7 @@ describe('operational overview', () => {
     expect(screen.getByRole('link', { name: 'Tomate · Fazenda Santa Clara' }).getAttribute('href')).toBe('/buyer/marketplace?offer=offer-tomate')
   })
   it.each([false, true])('shows a compact empty state without Recharts (buyer=%s)', async (buyer) => {
+    vi.mocked(defaultEnvironment.now).mockReturnValue('2027-03-06T12:00:00.000Z')
     await ready(buyer)
     expect(screen.getByRole('heading', { name: buyer ? 'Desempenho de compras' : 'Desempenho de vendas' })).toBeTruthy()
     const title = screen.getByRole('heading', { name: 'Nenhuma entrega concluída neste período' })
@@ -62,6 +63,7 @@ describe('operational overview', () => {
     expect(screen.getByLabelText('Período do gráfico')).toBeTruthy()
   })
   it.each([false, true])('renders the chart for a delivered order even with zero value (buyer=%s)', async (buyer) => {
+    vi.mocked(defaultEnvironment.now).mockReturnValue('2027-03-06T12:00:00.000Z')
     await commercialService.editOffer('santa-clara', 'offer-tomate-draft', { pricePerKg: 0 })
     await commercialService.publishOffer('santa-clara', 'offer-tomate-draft')
     const order = await commercialService.requestOrder('bom-preco', { offerId: 'offer-tomate-draft', quantityKg: 1, idempotencyKey: 'zero-value-delivery' })
@@ -100,16 +102,16 @@ describe('operational overview', () => {
   it('shows delivered financial totals and chart from recorded events', async () => {
     await deliveredOrder(); await ready()
     const indicators = screen.getByLabelText('Indicadores operacionais')
-    expect(within(indicators).getByText(/R\$\s*900,00/)).toBeTruthy()
+    expect(within(indicators).getByText(/R\$\s*3\.150,00/)).toBeTruthy()
     const chart = await screen.findByRole('figure', { name: 'Vendas entregues por dia' })
-    expect(chart.textContent).toContain('1 pedidos entregues no período')
-    expect(chart.textContent).toMatch(/900,00/)
+    expect(chart.textContent).toContain('5 pedidos entregues no período')
+    expect(chart.textContent).toMatch(/3\.150,00/)
     await waitFor(() => expect(document.querySelector('.recharts-bar')).toBeTruthy())
   })
   it('shows buyer completed purchases using the same verified delivery history', async () => {
     await deliveredOrder(); await ready(true)
-    expect(within(screen.getByLabelText('Indicadores operacionais')).getByText(/R\$\s*900,00/)).toBeTruthy()
-    expect((await screen.findByRole('figure', { name: 'Compras entregues por dia' })).textContent).toContain('1 pedidos entregues no período')
+    expect(within(screen.getByLabelText('Indicadores operacionais')).getByText(/R\$\s*3\.270,00/)).toBeTruthy()
+    expect((await screen.findByRole('figure', { name: 'Compras entregues por dia' })).textContent).toContain('5 pedidos entregues no período')
   })
   it.each([['7', false], ['30', false], ['90', false], ['7', true], ['30', true], ['90', true]])('changes chart period to %s days (buyer=%s)', async (days, buyer) => {
     const spy = vi.spyOn(dashboardService, 'overview')
@@ -126,6 +128,7 @@ describe('operational overview', () => {
     expect(screen.getAllByText('Metodologia e limitações').length).toBeGreaterThan(0)
   })
   it('displays honest empty states', async () => {
+    vi.mocked(defaultEnvironment.now).mockReturnValue('2027-03-06T12:00:00.000Z')
     await domainDatabase.transaction((data) => { data.marketAnalyses = [] })
     await ready()
     expect(screen.getByText('Sem análises disponíveis para os produtos cadastrados.')).toBeTruthy()

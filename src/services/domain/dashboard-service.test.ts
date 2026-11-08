@@ -8,7 +8,7 @@ function setup() { const data = createInitialScenario(); return { data, service:
 describe('dashboard service', () => {
   it('returns producer indicators, recent orders and actual engine recommendations', async () => {
     const { data, service } = setup(); const overview = await service.overview('santa-clara', 30)
-    expect(overview.indicators).toMatchObject({ completedAmount: 0, pendingCount: 2, inProgressCount: 2, availableProductionKg: 6550 })
+    expect(overview.indicators).toMatchObject({ completedAmount: 2250, pendingCount: 2, inProgressCount: 2, availableProductionKg: 6550 })
     expect(overview.recentOrders).toHaveLength(5)
     expect(overview.recentOrders.every((o) => o.producerOrganizationId === 'santa-clara')).toBe(true)
     expect(overview.recommendations.length).toBeLessThanOrEqual(3)

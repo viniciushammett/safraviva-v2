@@ -218,7 +218,7 @@ describe('commercial orders', () => {
   })
   it('derives commercial totals from committed orders only', async () => {
     const orders = (await database.snapshot()).orders
-    expect(commercialTotals(orders)).toEqual({ quantityKg: 1350, totalAmount: 2965 })
+    expect(commercialTotals(orders)).toEqual({ quantityKg: 2000, totalAmount: 5695 })
   })
 })
 

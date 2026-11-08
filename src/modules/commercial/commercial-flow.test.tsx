@@ -95,7 +95,7 @@ describe('buyer marketplace', () => {
   it('rejects requests exceeding current stock', async () => {
     await mountMarket(); await openTomato(); change('Quantidade desejada (kg)', '951'); click('Confirmar solicitação')
     expect((await screen.findByRole('alert')).textContent).toContain('saldo disponível')
-    expect((await domainDatabase.snapshot()).orders.length).toBe(8)
+    expect((await domainDatabase.snapshot()).orders.length).toBe(13)
   })
   it('reuses idempotency key when retrying after uncertain success', async () => {
     const actual = commercialService.requestOrder.bind(commercialService)
@@ -108,7 +108,7 @@ describe('buyer marketplace', () => {
     await mountMarket(); await openTomato(); change('Quantidade desejada (kg)', '10'); click('Confirmar solicitação')
     await screen.findByRole('alert'); click('Confirmar solicitação'); await screen.findByRole('heading', { name: 'Solicitação enviada' })
     expect(spy.mock.calls[0][1].idempotencyKey).toBe(spy.mock.calls[1][1].idempotencyKey)
-    expect((await domainDatabase.snapshot()).orders.length).toBe(9)
+    expect((await domainDatabase.snapshot()).orders.length).toBe(14)
   })
   it('reflects an offer that becomes unavailable while its panel is open', async () => {
     await mountMarket(); await openTomato()
